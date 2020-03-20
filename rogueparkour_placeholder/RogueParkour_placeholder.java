@@ -10,20 +10,37 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import me.clip.placeholderapi.expansion.Cacheable;
+import me.clip.placeholderapi.expansion.Configurable;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
+import me.clip.placeholderapi.expansion.Taskable;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 /**
  *
  * @author Admin
  */
-public class RogueParkour_placeholder  extends PlaceholderExpansion{ 
-
+public class RogueParkour_placeholder  extends PlaceholderExpansion implements Configurable, Cacheable, Taskable{ 
+    private final Map<String, Integer> update_data = new ConcurrentHashMap<>();
+    
+    public FileConfiguration data;
+    public ArrayList<String> id;
+    public HashMap<String,String> uuid_name;
+    public HashMap<String,Integer> uuid_score;
+    public ArrayList<String> uuid_score_ordenado;
+    private BukkitTask task;
+    
+    public FileConfiguration general_config=Main.get().getConfig();
     /**
      * This method should always return true unless we
      * have a dependency we need to make sure is on the server
@@ -84,75 +101,103 @@ public class RogueParkour_placeholder  extends PlaceholderExpansion{
     public String getPlugin() {
         return null;
     }
-    
-    public FileConfiguration data;
-    public ArrayList<String> id;
-    public HashMap<String,String> uuid_name;
-    public HashMap<String,Integer> uuid_score;
-    public ArrayList<String> uuid_score_ordenado;
-    
-    public FileConfiguration general_config=Main.get().getConfig();
+    //Configurable
+    @Override
+    public Map<String, Object> getDefaults() {
+        final Map<String, Object> defaults = new HashMap<>();
+        defaults.put("check_interval", 30);
+        return defaults;
+    }
+    //Cacheable
+    @Override
+    public void clear() {
+        update_data.clear();
+    }
+    //Taskable
+    @Override
+    public void start() {
+        task=new BukkitRunnable() {
+            @Override
+            public void run() {
+                //Delete and update all information
+                boolean mysql_enable=general_config.getBoolean("MYSQL.enabled");
+                data=Main.newConfigz;
+                uuid_name=new HashMap<>();
+                uuid_score=new HashMap<>();
+                id=new ArrayList<>();
+                uuid_score_ordenado=new ArrayList<>();
+                if(mysql_enable){
+                    try {
+                        //Metodo sql
+                        connection sql=new connection(general_config.getString("MYSQL.ip"), general_config.getString("MYSQL.port"), general_config.getString("MYSQL.database"), general_config.getString("MYSQL.user"), general_config.getString("MYSQL.password"));
+                        sql.openConnection();
+                        Statement st=sql.getConnection().createStatement();
+                        ResultSet rs=st.executeQuery("SELECT * FROM `RPScore`");
+                        while(rs.next()){
+                            String uuid=rs.getString("player");
+                            OfflinePlayer pl=getOfflinePlayer(uuid,true);
+                            String name;
+                            int score=rs.getInt("score");
+                            if(pl==null){
+                                name=uuid;
+                            }else{
+                                name=pl.getName();;
+                            }
+                            uuid_name.put(uuid, name);
+                            uuid_score.put(uuid, score);
+                            id.add(uuid);
+
+                        }
+                        sql.closeConnection();
+                    } catch (SQLException ex) {
+                        Logger.getLogger(RogueParkour_placeholder.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }else{
+                    //Metodo fichero
+                    Set<String> all_data= data.getKeys(false);
+                    for(String uuid : all_data){
+                        uuid_name.put(uuid, data.getString(uuid+".name"));
+                        uuid_score.put(uuid, data.getInt(uuid+".highscore"));
+                        id.add(uuid);
+                    }
+                }
+                //Ordenar los hashmap
+                order();
+            }
+        }.runTaskTimer(getPlaceholderAPI(), 100L, 20*getInt("check_interval",30));
+    }
+    public void order(){
+        for(int i=0;i<uuid_score.size();i++){
+            int max=0;
+            int orden=0;
+            for(int s=0;s<uuid_score.size();s++){
+                if(uuid_score.get(id.get(s))>max){
+                    if(!uuid_score_ordenado.contains(id.get(s))){
+                        max=uuid_score.get(id.get(s));
+                        orden=s;
+                    }
+                }
+            }
+            uuid_score_ordenado.add(id.get(orden));
+        }
+    }
+    @Override
+    public void stop() {
+        if (task != null) {
+            try {
+                task.cancel();
+            } catch (Exception ex) {
+            }
+            task = null;
+        }
+    }
+    //Request placeholder
     @Override
     public String onRequest(final OfflinePlayer player, final String identifier){
-        boolean mysql_enable=general_config.getBoolean("MYSQL.enabled");
-        data=Main.newConfigz;
         //%RogueParkour-temporary_top_<number>;<type>%
         //type==score or name
         //%RogueParkour-temporary_get_<player>%
         if(identifier.startsWith("top")){
-            uuid_name=new HashMap<>();
-            uuid_score=new HashMap<>();
-            id=new ArrayList<>();
-            uuid_score_ordenado=new ArrayList<>();
-            if(mysql_enable){
-                try {
-                    //Metodo sql
-                    connection sql=new connection(general_config.getString("MYSQL.ip"), general_config.getString("MYSQL.port"), general_config.getString("MYSQL.database"), general_config.getString("MYSQL.user"), general_config.getString("MYSQL.password"));
-                    sql.openConnection();
-                    Statement st=sql.getConnection().createStatement();
-                    ResultSet rs=st.executeQuery("SELECT * FROM `RPScore`");
-                    while(rs.next()){
-                        String uuid=rs.getString("player");
-                        OfflinePlayer pl=getOfflinePlayer(uuid,true);
-                        String name;
-                        int score=rs.getInt("score");
-                        if(pl==null){
-                            name=uuid;
-                        }else{
-                            name=pl.getName();;
-                        }
-                        uuid_name.put(uuid, name);
-                        uuid_score.put(uuid, score);
-                        id.add(uuid);
-                        
-                    }
-                    sql.closeConnection();
-                } catch (SQLException ex) {
-                    Logger.getLogger(RogueParkour_placeholder.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }else{
-                //Metodo fichero
-                Set<String> all_data= data.getKeys(false);
-                for(String uuid : all_data){
-                    uuid_name.put(uuid, data.getString(uuid+".name"));
-                    uuid_score.put(uuid, data.getInt(uuid+".highscore"));
-                    id.add(uuid);
-                }
-            }
-            //Ordenar los hashmap
-            for(int i=0;i<uuid_score.size();i++){
-                int max=0;
-                int orden=0;
-                for(int s=0;s<uuid_score.size();s++){
-                    if(uuid_score.get(id.get(s))>max){
-                        if(!uuid_score_ordenado.contains(id.get(s))){
-                            max=uuid_score.get(id.get(s));
-                            orden=s;
-                        }
-                    }
-                }
-                uuid_score_ordenado.add(id.get(orden));
-            }
             //Aplicar los datos
             String[] string=identifier.split("top_")[1].split(";");
             int number=Integer.valueOf(string[0]);
@@ -160,6 +205,9 @@ public class RogueParkour_placeholder  extends PlaceholderExpansion{
             String type="null";
             if(string.length>1){
                 type=string[1];
+            }
+            if(uuid_score_ordenado==null){
+                return "";
             }
             if(uuid_score_ordenado.size()>=number&&number>0){
                 String uuid=uuid_score_ordenado.get(select);
@@ -180,6 +228,8 @@ public class RogueParkour_placeholder  extends PlaceholderExpansion{
                     return "PLAYER_NOT_FOUND";
                 }
             }
+            System.out.println(p.getUniqueId().toString());
+            //return String.valueOf(uuid_score.get(p.getUniqueId().toString()));
             return String.valueOf((int)cl.omegacraft.kledioz.rparkour.API.getScore((Player)player));
         }else{
             return null;
