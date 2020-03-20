@@ -38,6 +38,7 @@ public class RogueParkour_placeholder  extends PlaceholderExpansion implements C
     public HashMap<String,String> uuid_name;
     public HashMap<String,Integer> uuid_score;
     public ArrayList<String> uuid_score_ordenado;
+    public HashMap<String,Integer> name_score;
     private BukkitTask task;
     
     public FileConfiguration general_config=Main.get().getConfig();
@@ -124,6 +125,7 @@ public class RogueParkour_placeholder  extends PlaceholderExpansion implements C
                 data=Main.newConfigz;
                 uuid_name=new HashMap<>();
                 uuid_score=new HashMap<>();
+                name_score=new HashMap<>();
                 id=new ArrayList<>();
                 uuid_score_ordenado=new ArrayList<>();
                 if(mysql_enable){
@@ -145,6 +147,7 @@ public class RogueParkour_placeholder  extends PlaceholderExpansion implements C
                             }
                             uuid_name.put(uuid, name);
                             uuid_score.put(uuid, score);
+                            name_score.put(name, score);
                             id.add(uuid);
 
                         }
@@ -158,6 +161,7 @@ public class RogueParkour_placeholder  extends PlaceholderExpansion implements C
                     for(String uuid : all_data){
                         uuid_name.put(uuid, data.getString(uuid+".name"));
                         uuid_score.put(uuid, data.getInt(uuid+".highscore"));
+                        name_score.put(data.getString(uuid+".name"), data.getInt(uuid+".highscore"));
                         id.add(uuid);
                     }
                 }
@@ -221,16 +225,14 @@ public class RogueParkour_placeholder  extends PlaceholderExpansion implements C
             }
         }else if(identifier.startsWith("get_")){
             String plName=identifier.split("get_")[1];
-            OfflinePlayer p=getOfflinePlayer(plName,false);
-            if(player==null){
-                p=getOfflinePlayer(plName,false);
-                if(p==null){
-                    return "PLAYER_NOT_FOUND";
-                }
+            if(uuid_score_ordenado==null){
+                return "";
             }
-            System.out.println(p.getUniqueId().toString());
-            //return String.valueOf(uuid_score.get(p.getUniqueId().toString()));
-            return String.valueOf((int)cl.omegacraft.kledioz.rparkour.API.getScore((Player)player));
+            if(name_score.containsKey(plName)){
+                return String.valueOf(name_score.get(plName));
+            }else{
+                return "0";
+            }
         }else{
             return null;
         }
