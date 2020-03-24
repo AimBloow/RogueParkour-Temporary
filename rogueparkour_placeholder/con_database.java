@@ -11,7 +11,7 @@ import java.sql.*;
  *
  * @author Admin
  */
-public class connection{
+public class con_database{
   public String user;
   public String database;
   public String password;
@@ -19,7 +19,7 @@ public class connection{
   public String hostname;
   public Connection connection;
   
-  public connection(String hostname, String port, String database, String username, String password){
+  public con_database(String hostname, String port, String database, String username, String password){
     this.hostname = hostname;
     this.port = port;
     this.database = database;
