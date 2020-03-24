@@ -39,7 +39,7 @@ public class RogueParkour_placeholder  extends PlaceholderExpansion implements C
     public final HashMap<String,Integer> uuid_score=new HashMap<>();
     public final HashMap<String,Integer> name_score=new HashMap<>();
     public Thread hilo;
-    public connection sql;
+    public con_database sql;
     private BukkitTask task;
     
     /**
@@ -222,7 +222,7 @@ public class RogueParkour_placeholder  extends PlaceholderExpansion implements C
                     try {
                         //Metodo sql
                         if(sql==null){
-                            sql=new connection(general_config.getString("MYSQL.ip"), general_config.getString("MYSQL.port"), general_config.getString("MYSQL.database"), general_config.getString("MYSQL.user"), general_config.getString("MYSQL.password"));
+                            sql=new con_database(general_config.getString("MYSQL.ip"), general_config.getString("MYSQL.port"), general_config.getString("MYSQL.database"), general_config.getString("MYSQL.user"), general_config.getString("MYSQL.password"));
                             sql.openConnection();
                         }
                         Statement st=sql.getConnection().createStatement();
