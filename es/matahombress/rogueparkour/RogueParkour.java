@@ -92,9 +92,6 @@ public class RogueParkour  extends PlaceholderExpansion implements Configurable,
         return "RogueParkour";
     }
     
-    public String getPlugin() {
-        return null;
-    }
     //Configurable
     @Override
     public Map<String, Object> getDefaults() {
