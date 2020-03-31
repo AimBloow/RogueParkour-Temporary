@@ -84,7 +84,7 @@ public class RogueParkour  extends PlaceholderExpansion implements Configurable,
      */
     @Override
     public String getVersion(){
-        return "1.4";
+        return "1.5";
     }
     
     @Override
