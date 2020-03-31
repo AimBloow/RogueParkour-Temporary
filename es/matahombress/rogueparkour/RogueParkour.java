@@ -178,7 +178,7 @@ public class RogueParkour  extends PlaceholderExpansion implements Configurable,
             task = null;
         }
     }
-    public void order(){
+    private void order(){
         for(int i=0;i<uuid_score.size();i++){
             int max=0;
             int orden=0;
@@ -235,7 +235,7 @@ public class RogueParkour  extends PlaceholderExpansion implements Configurable,
             return null;
         }
     }    
-    public static OfflinePlayer getOfflinePlayer(final String playerStr, final boolean isUUID) {
+    private static OfflinePlayer getOfflinePlayer(final String playerStr, final boolean isUUID) {
         OfflinePlayer[] offlinePlayers;
         for (int length = (offlinePlayers = Bukkit.getOfflinePlayers()).length, i = 0; i < length; ++i) {
             final OfflinePlayer p = offlinePlayers[i];
